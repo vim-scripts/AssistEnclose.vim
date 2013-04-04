@@ -274,6 +274,7 @@ fun WordsBracket(arg) range
 endf
 
 fun WordsEncapsN(encapsList,includeMap)
+	call WorkAroundAutoClose()
 	let pos          = getpos('.')
 	let left_encaps  = a:encapsList[1]
 	let right_encaps = a:encapsList[0]
@@ -294,11 +295,24 @@ fun WordsEncapsN(encapsList,includeMap)
 	exe "normal a" . right_encaps
 
 	call setpos('.',pos)
+	call WorkAroundAutoClose()
+endf
+
+fun WorkAroundAutoClose()
+	if exists('g:autoclose_loaded')
+		nmap x <Plug>ToggleAutoCloseMappings
+		normal x
+		exe 'nunmap x'
+	endif
 endf
 fun WordsEncapsV(encapslist,includeMap) range
+
+	call WorkAroundAutoClose()
+
 	let left_encaps  = a:encapslist[1]
 	let right_encaps = a:encapslist[0]
 	let include		 = a:includeMap
+	" let V = 0
 
 	call cursor(line("'<"),col("'<"))
 	if col("'<")==1
@@ -321,11 +335,16 @@ fun WordsEncapsV(encapslist,includeMap) range
 	else
 		normal le
 	endif
-	call SearchNextSpot(include)
+	call SearchNextSpot(include)    
+
+	if col("$") == col("'>")
+		normal h
+	endif
 
 	exe "normal a" . right_encaps
 
 	call cursor(line("'<"),col("'<"))
+	call WorkAroundAutoClose()
 endf
 
 
@@ -434,11 +453,7 @@ endf
 " 0. "blow out all contents"
 let avoidList = ["'",'"']
 nmap <A-;><A-'> :call DeleteInQuoteOnce(avoidList)<CR>
-
-
 nmap <A-[><A-]> :call DeleteInBraOnce(g:ListBraTotal)<CR>
-
-
 
 " 1. "Make encaps."
 nmap <A-)><A-(> :call WordsEncapsN(g:ListBra,g:ListForBracket)<CR>

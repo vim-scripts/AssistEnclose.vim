@@ -1,12 +1,11 @@
 This is a mirror of http://www.vim.org/scripts/script.php?script_id=4484
 
-
-
+description 
 ========================================================================= 
 
 [ Usage ] 
 
-_____________ 
+___________
     1. Enclosing 
 
 
@@ -27,11 +26,17 @@ with the same way working on
 
 [...] <...> {....} 
 
-That is, hit 
-
 <Alt> +  ][  or  ><  or  }{   
 
 to make each enclosing. 
+
+
+Basically, enclosing range is in the unit of word, 
+so you don't need care about cursor position precisely. 
+Regardless of input mode(normal or visual), 
+put on across somewhere of the word you want. 
+
+
 
 
 When to make enclosure with single or double quotations 
@@ -57,7 +62,7 @@ stdio.h
 
 
 
-____________________________ 
+__________________________
     2. Delete contents in enclosure 
 
 
@@ -74,7 +79,7 @@ Same way is applied to
 
 
 
-_____________________________________ 
+___________________________________
     3. Delete enclosure leaving contents intact 
 
 
@@ -91,7 +96,7 @@ Same way is applied to
 
 
 
-__________________________________________ 
+________________________________________
     4. Blow out the contents at once in the enclosure 
 
 
@@ -108,20 +113,38 @@ Default order is  {...}	  ­  (...)   ­ <...>  	­   [...]
                    High                                   Low 
 
 
-_____________________________________ 
+___________________________________
     5. when manipulate snippets file or html file 
 
 
 word -> ${1:word}           when in .snipptes 
 word -> <em>word</em>       when in .html 
+word -> \emph{word}         when in .tex
 
 with Alt + ][ 
 
 
+______________
+    6. smart escape
+
+in insert mode
+<C-j> step through enclosing 
+
+("'[{word▌}]'")
+("'[{word}▌]'")
+("'[{word}]▌'")
+("'[{word}]'▌")
+("'[{word}]'"▌)
+("'[{word}]'")▌
+
+
+You can add or modify
+
+let g:closingList = ["'",'"',")","]",">","}","$",'\&#039]
+
 
 
 -------------------------------------------------------------------------- 
-
 
 [ NOTE ] 
 
@@ -135,5 +158,4 @@ http://www.vim.org/scripts/script.php?script_id=1697
 
 autoclose.vim 
 http://www.vim.org/scripts/script.php?script_id=1849 
-
 
