@@ -1,6 +1,6 @@
-let g:ListForQuote    = ['.','!','~','h']	" char to include for quotes
-let g:ListForBracket  = ["'",'"','h','.']	" char to include for brackets
-let g:ListForSnippets = ['!','~'] 			" char to include for snippets
+let g:ListForQuote    = ['.','!','~','h','?']	" char to include for quotes
+let g:ListForBracket  = ["'",'"','h','.',':']		" char to include for brackets
+let g:ListForSnippets = ['!','~','?'] 				" char to include for snippets
 
 
 let g:ListBra = [')','(']
@@ -274,7 +274,7 @@ fun WordsBracket(arg) range
 endf
 
 fun WordsEncapsN(encapsList,includeMap)
-	call WorkAroundAutoClose()
+	call WorkAroundAutoClose('open')
 	let pos          = getpos('.')
 	let left_encaps  = a:encapsList[1]
 	let right_encaps = a:encapsList[0]
@@ -295,56 +295,91 @@ fun WordsEncapsN(encapsList,includeMap)
 	exe "normal a" . right_encaps
 
 	call setpos('.',pos)
-	call WorkAroundAutoClose()
+	call WorkAroundAutoClose('close')
 endf
 
-fun WorkAroundAutoClose()
+fun! CoreExample()
+	nmap x <Plug>ToggleAutoCloseMappings
+	normal x
+	exe 'nunmap x'
+endf
+
+let g:switched = 0
+fun! WorkAroundAutoClose(arg)
+	let status = a:arg
 	if exists('g:autoclose_loaded')
-		nmap x <Plug>ToggleAutoCloseMappings
-		normal x
-		exe 'nunmap x'
+		if g:autoclose_on && status == 'open'
+			call CoreExample()
+			let g:switched = !g:switched
+		elseif g:switched && status == 'close'
+			call CoreExample()
+			let g:switched = !g:switched
+		endif
 	endif
 endf
-fun WordsEncapsV(encapslist,includeMap) range
 
-	call WorkAroundAutoClose()
+fun WordsEncapsV(encapslist,includeMap,mode) range
+
+	call WorkAroundAutoClose('open')
 
 	let left_encaps  = a:encapslist[1]
 	let right_encaps = a:encapslist[0]
-	let include		 = a:includeMap
+	let include      = a:includeMap
+	let mode         = a:mode
 	" let V = 0
 
-	call cursor(line("'<"),col("'<"))
-	if col("'<")==1
-		if getline('.')[0] == ' ' || getline('.')[0] == "\<TAB>"
-			normal w
+	if mode == 'each'
+
+		let start_lin = line ( "'<")
+		let end_lin   = line ( "'>")
+		let start_col = col  ( "'<")
+		let end_col   = col  ( "'>")
+		let lin_num = end_lin - start_lin + 1
+		for i in range(lin_num)
+
+			call cursor(start_lin+i,col("'<"))
+			normal wb
+			let existsInclude = SearchBackSpot(include)
+			exe "normal i" . left_encaps
+
+			call cursor(start_lin+i,col("'>"))
+			normal be
+			call SearchNextSpot(include)    
+			exe "normal a" . right_encaps
+		endfor
+
+		call cursor(line("'<"),col("'<"))
+	elseif mode == 'onepair'
+		call cursor(line("'<"),col("'<"))
+		if col("'<")==1
+			if getline('.')[0] == ' ' || getline('.')[0] == "\<TAB>"
+				normal w
+			endif
+		else
+			normal wb
 		endif
-	else
-	   	normal wb
+		let existsInclude = SearchBackSpot(include)
+		exe "normal i" . left_encaps
+
+		call cursor(line("'>"),col("'>"))
+
+		if !existsInclude
+			if col("'>") < col('$')
+				normal e
+			endif
+		else
+			normal le
+		endif
+		call SearchNextSpot(include)    
+
+		if col("$") == col("'>")
+			normal h
+		endif
+
+		exe "normal a" . right_encaps
+		call cursor(line("'<"),col("'<"))
 	endif
-	let existsInclude = SearchBackSpot(include)
-
-	exe "normal i" . left_encaps
-
-	call cursor(line("'>"),col("'>"))
-
-	if !existsInclude
-        if col("'>") < col('$')
-            normal e
-        endif
-	else
-		normal le
-	endif
-	call SearchNextSpot(include)    
-
-	if col("$") == col("'>")
-		normal h
-	endif
-
-	exe "normal a" . right_encaps
-
-	call cursor(line("'<"),col("'<"))
-	call WorkAroundAutoClose()
+	call WorkAroundAutoClose('close')
 endf
 
 
@@ -390,37 +425,62 @@ fun SearchNextSpotSmall(sp,a1,a2,a3)
 endf
 
 fun WordsEmphasizeV() range
+	call WorkAroundAutoClose('open')
 	call cursor(line("'<"),col("'<"))
 	normal wb
 	call SearchBackSpot(g:ListForSnippets)
-	normal i<em>
+	if &ft == 'html'
+		normal i<em>
+	elseif &ft == 'tex'
+		normal i\emph{
+	endif
 
 	call cursor(line("'>"),col("'>"))
 	normal e
 
 	call SearchNextSpot(g:ListForSnippets)
-	normal a</em>
+	if &ft == 'html'
+		" normal i<em>
+		normal a</em>
+	elseif &ft == 'tex'
+		normal a}
+	endif
 
 	call cursor(line("'<"),col("'<"))
+	call WorkAroundAutoClose('close')
 endf
 fun WordsEmphasize()
+	call WorkAroundAutoClose('open')
 
 	let pos = getpos('.')
 	normal e
 
 	call SearchNextSpot(g:ListForSnippets)
-	normal a</em>
+	" normal a</em>
+	if &ft == 'html'
+		" normal i<em>
+		normal a</em>
+	elseif &ft == 'tex'
+		normal a}
+	endif
 
 	call setpos('.',pos)
 
 	normal wb
 	call SearchBackSpot(g:ListForSnippets)
-	normal i<em>
+	if &ft == 'html'
+		normal i<em>
+	elseif &ft == 'tex'
+		normal i\emph{
+	endif
+	" normal i<em>
 
 	call setpos('.',pos)
+	call WorkAroundAutoClose('close')
 endf
 
 fun WordsSnippetsV() range
+	call WorkAroundAutoClose('open')
 
 	call cursor(line("'>"),col("'>")-1)
 	normal e
@@ -435,8 +495,10 @@ fun WordsSnippetsV() range
 	normal i${1:
 	normal h
 	" call cursor(line("'<"),col("'<"))
+	call WorkAroundAutoClose('close')
 endf
 fun WordsSnippets()
+	call WorkAroundAutoClose('open')
 	let pos = getpos('.')
 	normal e
 	call SearchNextSpot(g:ListForSnippets)
@@ -447,6 +509,7 @@ fun WordsSnippets()
 	call SearchBackSpot(g:ListForSnippets)
 	normal i${1:
 	normal h
+	call WorkAroundAutoClose('close')
 endf
 
 
@@ -462,13 +525,20 @@ nmap <A-]><A-[> :call WordsEncapsN(g:ListRec,g:ListForBracket)<CR>
 nmap <A-}><A-{> :call WordsEncapsN(g:ListCur,g:ListForBracket)<CR>
 nmap <A-'><A-;> :call WordsEncapsN(g:ListSma,g:ListForQuote)<CR>
 nmap <A-"><A-:> :call WordsEncapsN(g:ListDuo,g:ListForQuote)<CR>
-             
-vmap <A-)><A-(> :call WordsEncapsV(g:ListBra,g:ListForBracket)<CR>
-vmap <A->><A-<> :call WordsEncapsV(g:ListSha,g:ListForBracket)<CR>
-vmap <A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket)<CR>
-vmap <A-}><A-{> :call WordsEncapsV(g:ListCur,g:ListForBracket)<CR>
-vmap <A-'><A-;> :call WordsEncapsV(g:ListSma,g:ListForQuote)<CR>
-vmap <A-"><A-:> :call WordsEncapsV(g:ListDuo,g:ListForQuote)<CR>
+
+vmap <A-)><A-(> :call WordsEncapsV(g:ListBra,g:ListForBracket,'onepair')<CR>
+vmap <A->><A-<> :call WordsEncapsV(g:ListSha,g:ListForBracket,'onepair')<CR>
+vmap <A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'onepair')<CR>
+vmap <A-}><A-{> :call WordsEncapsV(g:ListCur,g:ListForBracket,'onepair')<CR>
+vmap <A-'><A-;> :call WordsEncapsV(g:ListSma,g:ListForQuote,'onepair')<CR>
+vmap <A-"><A-:> :call WordsEncapsV(g:ListDuo,g:ListForQuote,'onepair')<CR>
+
+vmap <leader><A-)><A-(> :call WordsEncapsV(g:ListBra,g:ListForBracket,'each')<CR>
+vmap <leader><A->><A-<> :call WordsEncapsV(g:ListSha,g:ListForBracket,'each')<CR>
+vmap <leader><A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'each')<CR>
+vmap <leader><A-}><A-{> :call WordsEncapsV(g:ListCur,g:ListForBracket,'each')<CR>
+vmap <leader><A-'><A-;> :call WordsEncapsV(g:ListSma,g:ListForQuote,'each')<CR>
+vmap <leader><A-"><A-:> :call WordsEncapsV(g:ListDuo,g:ListForQuote,'each')<CR>
 
 " 2. "Delete contents in encaps."
 nmap <A-(><A-(> :call DeleteContents(g:ListBra,'normal')<CR>
@@ -492,7 +562,7 @@ nmap <A-}><A-}> :call EraseEncaps(g:ListCur,'normal')<CR>
 nmap <A-]><A-]> :call EraseEncaps(g:ListRec,'normal')<CR>
 nmap <A-"><A-"> :call EraseEncaps(g:ListDuo,'normal')<CR>
 nmap <A-'><A-'> :call EraseEncaps(g:ListSma,'normal')<CR>
-       
+
 vmap <A-)><A-)> :call EraseEncaps(g:ListBra,'visual')<CR>
 vmap <A->><A->> :call EraseEncaps(g:ListSha,'visual')<CR>
 vmap <A-}><A-}> :call EraseEncaps(g:ListCur,'visual')<CR>
@@ -511,7 +581,7 @@ fun SetForHTML()
 	nmap <A-]><A-[> :call WordsEmphasize()<CR>
 endf
 
-au BufNewFile,BufRead,Bufenter,BufReadPost *.html call SetForHTML()
+au BufNewFile,BufRead,Bufenter,BufReadPost *.html,*.tex call SetForHTML()
 au BufNewFile,BufRead,Bufenter,BufReadPost *.snippets call SetForSnippets()
 
 "Drop in your .vim/plugin or vimfiles/plugin
