@@ -15,6 +15,8 @@ let g:ListBraTotal = [g:ListCur,g:ListBra,g:ListSha,g:ListRec]
 let g:ListDuo = ['"','"']
 let g:ListSma = ["'","'"]
 
+let g:closingList = ["'",'"',")","]",">","}","$",'\']
+
 fun DeleteInQuoteOnce(avoid)
 	let avoid      = a:avoid
 	let avoid_cmp1 = [a:avoid[0],a:avoid[0]]
@@ -514,6 +516,14 @@ fun WordsSnippets()
 	call WorkAroundAutoClose('close')
 endf
 
+fun EscapeSmart()
+	let closing = getline('.')[col('.')]
+	for avoid in g:closingList
+		if closing == avoid
+			normal l
+		endif
+	endfor
+endfun
 
 " 0. "blow out all contents"
 let avoidList = ["'",'"']
@@ -572,8 +582,6 @@ vmap <A-]><A-]> :call EraseEncaps(g:ListRec,'visual')<CR>
 vmap <A-"><A-"> :call EraseEncaps(g:ListDuo,'visual')<CR>
 vmap <A-'><A-'> :call EraseEncaps(g:ListSma,'visual')<CR>
 
-
-
 fun SetForSnippets()
 	vmap <A-]><A-[> :call WordsSnippetsV()<CR>
 	nmap <A-]><A-[> :call WordsSnippets()<CR>
@@ -585,6 +593,9 @@ endf
 
 au BufNewFile,BufRead,Bufenter,BufReadPost *.html,*.tex call SetForHTML()
 au BufNewFile,BufRead,Bufenter,BufReadPost *.snippets call SetForSnippets()
+
+
+inoremap <C-j> <C-[>:call EscapeSmart()<CR>a
 
 "Drop in your .vim/plugin or vimfiles/plugin
 "Feel free changing to your favorite key mapping.
