@@ -1,6 +1,6 @@
 let g:ListForQuote    = ['.','!','~','h','?']	" char to include for quotes
-let g:ListForBracket  = ["'",'"','h','.',':']		" char to include for brackets
-let g:ListForSnippets = ['!','~','?'] 				" char to include for snippets
+let g:ListForBracket  = ["'",'"','h','.',':']	" char to include for brackets
+let g:ListForSnippets = ['!','~','?',',','.'] 	" char to include for snippets
 
 
 let g:ListBra = [')','(']
@@ -436,7 +436,7 @@ fun WordsEmphasizeV() range
 	endif
 
 	call cursor(line("'>"),col("'>"))
-	normal e
+	normal 2e
 
 	call SearchNextSpot(g:ListForSnippets)
 	if &ft == 'html'
@@ -453,7 +453,9 @@ fun WordsEmphasize()
 	call WorkAroundAutoClose('open')
 
 	let pos = getpos('.')
-	normal e
+	if getline('.')[col('.')] != ' '
+		normal e
+	endif
 
 	call SearchNextSpot(g:ListForSnippets)
 	" normal a</em>
