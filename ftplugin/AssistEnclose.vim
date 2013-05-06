@@ -1,7 +1,34 @@
-let g:ListForQuote    = ['.','!','~','h','?']	" char to include for quotes
-let g:ListForBracket  = ["'",'"','h','.',':']	" char to include for brackets
-let g:ListForSnippets = ['!','~','?',',','.'] 	" char to include for snippets
-
+let g:FileTypeList = ['python','c','cpp','matlab','javascript','vim'] " supporting languages
+fun DecisionFT()
+	for support in g:FileTypeList
+		let decision = 0
+		if &ft == support
+			let decision += 1
+		endif
+	endfor
+	if decision == 0	" if [not] in programming env (in text edit) (or latex )
+		let g:ListForQuote    = ['.','!','~','h','?']	" char to include for quotes
+		let g:ListForBracket  = ["'",'"','h','.',':']	" char to include for brackets
+		let g:ListForSnippets = ['!','~','?',',','.'] 	" char to include for snippets
+	else   				" if in <programming> env
+		let g:ListForQuote    = []	" char to include for quotes
+		let g:ListForBracket  = []	" char to include for brackets
+		let g:ListForSnippets = [] 	" char to include for snippets
+	endif
+endfun
+au BufRead,WinEnter * call DecisionFT()
+" Or you can manually modify the character to include when manipulating specific filetype language one by one.
+" like following
+" if &ft == 'python'
+" let g:ListForQuote    = ['.','!','~','h','?']	" char to include for quotes
+" let g:ListForBracket  = ["'",'"','h','.',':']	" char to include for brackets
+" let g:ListForSnippets = ['!','~','?',',','.'] 	" char to include for snippets
+" elseif &ft == 'c'
+" let g:ListForQuote    = ['.','!','~','h','?']	" char to include for quotes
+" let g:ListForBracket  = ["'",'"','h','.',':']	" char to include for brackets
+" let g:ListForSnippets = ['!','~','?',',','.'] 	" char to include for snippets
+" ...
+" endif
 
 let g:ListBra = [')','(']
 let g:ListSha = ['>','<']
@@ -426,35 +453,62 @@ fun SearchNextSpotSmall(sp,a1,a2,a3)
 	endif
 endf
 
-fun WordsEmphasizeV() range
+fun WordsEmphasizeV(arg)
 	call WorkAroundAutoClose('open')
-	call cursor(line("'<"),col("'<"))
-	normal wb
-	call SearchBackSpot(g:ListForSnippets)
-	if &ft == 'html'
-		normal i<em>
-	elseif &ft == 'tex'
-		normal i\emph{
-	endif
+	let option = a:arg
 
 	call cursor(line("'>"),col("'>"))
-	normal 2e
+	if getline('.')[col('.')] != ' '
+		normal e
+	endif
 
 	call SearchNextSpot(g:ListForSnippets)
 	if &ft == 'html'
-		" normal i<em>
 		normal a</em>
 	elseif &ft == 'tex'
 		normal a}
 	endif
 
 	call cursor(line("'<"),col("'<"))
+	if getline('.')[col('.')-2] != ' '
+		normal b
+	endif
+	call SearchBackSpot(g:ListForSnippets)
+	if &ft == 'html'
+		normal i<em>
+		let after = 0
+	elseif &ft == 'tex'
+		let after = 2
+		if option == 0
+			normal i\emph{
+			let after = 1
+		elseif option == 1
+			normal i\textcolor{red}{
+		elseif option == 2
+			normal i\textcolor{magenta}{
+		elseif option == 3
+			normal i\textcolor{blue}{
+		elseif option == 4
+			normal i\textcolor{cyan}{
+		elseif option == 5
+			normal i\textcolor{green}{
+		endif
+	endif
+	call cursor(line("'<"),col("'<"))
+	if after == 0
+		normal f>l
+	elseif after == 1
+		normal f{l
+	elseif after == 2
+		normal f{;l
+	endif
 	call WorkAroundAutoClose('close')
 endf
-fun WordsEmphasize()
-	call WorkAroundAutoClose('open')
-
+fun WordsEmphasize(arg) range
 	let pos = getpos('.')
+	call WorkAroundAutoClose('open')
+	let option = a:arg
+
 	if getline('.')[col('.')] != ' '
 		normal e
 	endif
@@ -470,16 +524,41 @@ fun WordsEmphasize()
 
 	call setpos('.',pos)
 
-	normal wb
+	if getline('.')[col('.')-2] != ' '
+		normal b
+		" normal wb
+	endif
 	call SearchBackSpot(g:ListForSnippets)
 	if &ft == 'html'
 		normal i<em>
+		let after = 0
 	elseif &ft == 'tex'
-		normal i\emph{
+		let after = 2
+		if option == 0
+			normal i\emph{
+			let after = 1
+		elseif option == 1
+			normal i\textcolor{red}{
+		elseif option == 2
+			normal i\textcolor{magenta}{
+		elseif option == 3
+			normal i\textcolor{blue}{
+		elseif option == 4
+			normal i\textcolor{cyan}{
+		elseif option == 5
+			normal i\textcolor{green}{
+		endif
 	endif
 	" normal i<em>
 
 	call setpos('.',pos)
+	if after == 0
+		normal f>l
+	elseif after == 1
+		normal f{l
+	elseif after == 2
+		normal f{;l
+	endif
 	call WorkAroundAutoClose('close')
 endf
 
@@ -516,86 +595,106 @@ fun WordsSnippets()
 	call WorkAroundAutoClose('close')
 endf
 
-fun EscapeSmart()
-	let closing = getline('.')[col('.')]
+fun EasyThrough()
+	let closing = getline('.')[col('.')-1]
+	let through = 0
 	for avoid in g:closingList
 		if closing == avoid
-			normal l
+			let through += 1
+			return "\<Right>"
 		endif
-	endfor
+	endfor   
+	if pumvisible()
+		return "\<Insert>\<Insert>"
+		" return "\<Enter>"
+	else
+		if through
+			return "\<Insert>\<Insert>"
+		else
+			return "\<Esc>"
+		endif
+	endif
 endfun
-
+" 
 " 0. "blow out all contents"
 let avoidList = ["'",'"']
-nmap <A-;><A-'> :call DeleteInQuoteOnce(avoidList)<CR>
-nmap <A-[><A-]> :call DeleteInBraOnce(g:ListBraTotal)<CR>
+nmap <silent><A-;><A-'> :call DeleteInQuoteOnce(avoidList)<CR>i
+nmap <silent><A-[><A-]> :call DeleteInBraOnce(g:ListBraTotal)<CR>i
 
 " 1. "Make encaps."
-nmap <A-)><A-(> :call WordsEncapsN(g:ListBra,g:ListForBracket)<CR>
-nmap <A->><A-<> :call WordsEncapsN(g:ListSha,g:ListForBracket)<CR>
-nmap <A-]><A-[> :call WordsEncapsN(g:ListRec,g:ListForBracket)<CR>
-nmap <A-}><A-{> :call WordsEncapsN(g:ListCur,g:ListForBracket)<CR>
-nmap <A-'><A-;> :call WordsEncapsN(g:ListSma,g:ListForQuote)<CR>
-nmap <A-"><A-:> :call WordsEncapsN(g:ListDuo,g:ListForQuote)<CR>
+nmap <silent><A-)><A-(> :call WordsEncapsN(g:ListBra,g:ListForBracket)<CR>
+nmap <silent><A->><A-<> :call WordsEncapsN(g:ListSha,g:ListForBracket)<CR>
+nmap <silent><A-]><A-[> :call WordsEncapsN(g:ListRec,g:ListForBracket)<CR>
+nmap <silent><A-}><A-{> :call WordsEncapsN(g:ListCur,g:ListForBracket)<CR>
+nmap <silent><A-'><A-;> :call WordsEncapsN(g:ListSma,g:ListForQuote)<CR>
+nmap <silent><A-"><A-:> :call WordsEncapsN(g:ListDuo,g:ListForQuote)<CR>
 
-vmap <A-)><A-(> :call WordsEncapsV(g:ListBra,g:ListForBracket,'onepair')<CR>
-vmap <A->><A-<> :call WordsEncapsV(g:ListSha,g:ListForBracket,'onepair')<CR>
-vmap <A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'onepair')<CR>
-vmap <A-}><A-{> :call WordsEncapsV(g:ListCur,g:ListForBracket,'onepair')<CR>
-vmap <A-'><A-;> :call WordsEncapsV(g:ListSma,g:ListForQuote,'onepair')<CR>
-vmap <A-"><A-:> :call WordsEncapsV(g:ListDuo,g:ListForQuote,'onepair')<CR>
+vmap <silent><A-)><A-(> :call WordsEncapsV(g:ListBra,g:ListForBracket,'onepair')<CR>
+vmap <silent><A->><A-<> :call WordsEncapsV(g:ListSha,g:ListForBracket,'onepair')<CR>
+vmap <silent><A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'onepair')<CR>
+vmap <silent><A-}><A-{> :call WordsEncapsV(g:ListCur,g:ListForBracket,'onepair')<CR>
+vmap <silent><A-'><A-;> :call WordsEncapsV(g:ListSma,g:ListForQuote,'onepair')<CR>
+vmap <silent><A-"><A-:> :call WordsEncapsV(g:ListDuo,g:ListForQuote,'onepair')<CR>
 
-vmap <leader><A-)><A-(> :call WordsEncapsV(g:ListBra,g:ListForBracket,'each')<CR>
-vmap <leader><A->><A-<> :call WordsEncapsV(g:ListSha,g:ListForBracket,'each')<CR>
-vmap <leader><A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'each')<CR>
-vmap <leader><A-}><A-{> :call WordsEncapsV(g:ListCur,g:ListForBracket,'each')<CR>
-vmap <leader><A-'><A-;> :call WordsEncapsV(g:ListSma,g:ListForQuote,'each')<CR>
-vmap <leader><A-"><A-:> :call WordsEncapsV(g:ListDuo,g:ListForQuote,'each')<CR>
+vmap <silent><leader><A-)><A-(> :call WordsEncapsV(g:ListBra,g:ListForBracket,'each')<CR>
+vmap <silent><leader><A->><A-<> :call WordsEncapsV(g:ListSha,g:ListForBracket,'each')<CR>
+vmap <silent><leader><A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'each')<CR>
+vmap <silent><leader><A-}><A-{> :call WordsEncapsV(g:ListCur,g:ListForBracket,'each')<CR>
+vmap <silent><leader><A-'><A-;> :call WordsEncapsV(g:ListSma,g:ListForQuote,'each')<CR>
+vmap <silent><leader><A-"><A-:> :call WordsEncapsV(g:ListDuo,g:ListForQuote,'each')<CR>
 
 " 2. "Delete contents in encaps."
-nmap <A-(><A-(> :call DeleteContents(g:ListBra,'normal')<CR>
-nmap <A-<><A-<> :call DeleteContents(g:ListSha,'normal')<CR>
-nmap <A-{><A-{> :call DeleteContents(g:ListCur,'normal')<CR>
-nmap <A-[><A-[> :call DeleteContents(g:ListRec,'normal')<CR>
-nmap <A-:><A-:> :call DeleteContents(g:ListDuo,'normal')<CR>
-nmap <A-;><A-;> :call DeleteContents(g:ListSma,'normal')<CR>
+nmap <silent><A-(><A-(> :call DeleteContents(g:ListBra,'normal')<CR>
+nmap <silent><A-<><A-<> :call DeleteContents(g:ListSha,'normal')<CR>
+nmap <silent><A-{><A-{> :call DeleteContents(g:ListCur,'normal')<CR>
+nmap <silent><A-[><A-[> :call DeleteContents(g:ListRec,'normal')<CR>
+nmap <silent><A-:><A-:> :call DeleteContents(g:ListDuo,'normal')<CR>
+nmap <silent><A-;><A-;> :call DeleteContents(g:ListSma,'normal')<CR>
 
-vmap <A-(><A-(> x:call DeleteContents(g:ListBra,'visual')<CR>
-vmap <A-<><A-<> x:call DeleteContents(g:ListSha,'visual')<CR>
-vmap <A-{><A-{> x:call DeleteContents(g:ListCur,'visual')<CR>
-vmap <A-[><A-[> x:call DeleteContents(g:ListRec,'visual')<CR>
-vmap <A-:><A-:> x:call DeleteContents(g:ListDuo,'visual')<CR>
-vmap <A-;><A-;> x:call DeleteContents(g:ListSma,'visual')<CR>
+vmap <silent><A-(><A-(> x:call DeleteContents(g:ListBra,'visual')<CR>
+vmap <silent><A-<><A-<> x:call DeleteContents(g:ListSha,'visual')<CR>
+vmap <silent><A-{><A-{> x:call DeleteContents(g:ListCur,'visual')<CR>
+vmap <silent><A-[><A-[> x:call DeleteContents(g:ListRec,'visual')<CR>
+vmap <silent><A-:><A-:> x:call DeleteContents(g:ListDuo,'visual')<CR>
+vmap <silent><A-;><A-;> x:call DeleteContents(g:ListSma,'visual')<CR>
 
 " {3}. "Remove encaps leaving contents intact."
-nmap <A-)><A-)> :call EraseEncaps(g:ListBra,'normal')<CR>
-nmap <A->><A->> :call EraseEncaps(g:ListSha,'normal')<CR>
-nmap <A-}><A-}> :call EraseEncaps(g:ListCur,'normal')<CR>
-nmap <A-]><A-]> :call EraseEncaps(g:ListRec,'normal')<CR>
-nmap <A-"><A-"> :call EraseEncaps(g:ListDuo,'normal')<CR>
-nmap <A-'><A-'> :call EraseEncaps(g:ListSma,'normal')<CR>
+nmap <silent><A-)><A-)> :call EraseEncaps(g:ListBra,'normal')<CR>
+nmap <silent><A->><A->> :call EraseEncaps(g:ListSha,'normal')<CR>
+nmap <silent><A-}><A-}> :call EraseEncaps(g:ListCur,'normal')<CR>
+nmap <silent><A-]><A-]> :call EraseEncaps(g:ListRec,'normal')<CR>
+nmap <silent><A-"><A-"> :call EraseEncaps(g:ListDuo,'normal')<CR>
+nmap <silent><A-'><A-'> :call EraseEncaps(g:ListSma,'normal')<CR>
 
-vmap <A-)><A-)> :call EraseEncaps(g:ListBra,'visual')<CR>
-vmap <A->><A->> :call EraseEncaps(g:ListSha,'visual')<CR>
-vmap <A-}><A-}> :call EraseEncaps(g:ListCur,'visual')<CR>
-vmap <A-]><A-]> :call EraseEncaps(g:ListRec,'visual')<CR>
-vmap <A-"><A-"> :call EraseEncaps(g:ListDuo,'visual')<CR>
-vmap <A-'><A-'> :call EraseEncaps(g:ListSma,'visual')<CR>
+vmap <silent><A-)><A-)> :call EraseEncaps(g:ListBra,'visual')<CR>
+vmap <silent><A->><A->> :call EraseEncaps(g:ListSha,'visual')<CR>
+vmap <silent><A-}><A-}> :call EraseEncaps(g:ListCur,'visual')<CR>
+vmap <silent><A-]><A-]> :call EraseEncaps(g:ListRec,'visual')<CR>
+vmap <silent><A-"><A-"> :call EraseEncaps(g:ListDuo,'visual')<CR>
+vmap <silent><A-'><A-'> :call EraseEncaps(g:ListSma,'visual')<CR>
 
 fun SetForSnippets()
-	vmap <A-]><A-[> :call WordsSnippetsV()<CR>
-	nmap <A-]><A-[> :call WordsSnippets()<CR>
+	vmap <silent><A-]><A-[> :call WordsSnippetsV()<CR>
+	nmap <silent><A-]><A-[> :call WordsSnippets()<CR>
 endf
 fun SetForHTML()
-	vmap <A-]><A-[> :call WordsEmphasizeV()<CR>
-	nmap <A-]><A-[> :call WordsEmphasize()<CR>
+	nmap <silent><A-]><A-[>	 :call WordsEmphasize(0)<CR>
+	nmap <silent>1<A-]><A-[> :call WordsEmphasize(1)<CR>
+	nmap <silent>2<A-]><A-[> :call WordsEmphasize(2)<CR>
+	nmap <silent>3<A-]><A-[> :call WordsEmphasize(3)<CR>
+	nmap <silent>4<A-]><A-[> :call WordsEmphasize(4)<CR>
+	nmap <silent>5<A-]><A-[> :call WordsEmphasize(5)<CR>
+	vmap <silent><A-]><A-[>	 :call WordsEmphasizeV($buf.count)<CR>
+	" vmap <A-]><A-[> :call WordsEmphasizeV()<CR>
+	" nmap <A-]><A-[> :call WordsEmphasize()<CR>
 endf
 
 au BufNewFile,BufRead,Bufenter,BufReadPost *.html,*.tex call SetForHTML()
 au BufNewFile,BufRead,Bufenter,BufReadPost *.snippets call SetForSnippets()
 
-
-inoremap <C-j> <C-[>:call EscapeSmart()<CR>a
+inoremap <expr> j pumvisible() ? "\<C-N>" : "j"
+inoremap <expr> k pumvisible() ? "\<C-P>" : "k"
+inoremap <silent><C-j> <C-R>=EasyThrough()<CR>
 
 "Drop in your .vim/plugin or vimfiles/plugin
 "Feel free changing to your favorite key mapping.
