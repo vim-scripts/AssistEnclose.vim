@@ -15,6 +15,10 @@ fun DecisionFT()
 		let g:ListForBracket  = []	" char to include for brackets
 		let g:ListForSnippets = [] 	" char to include for snippets
 	endif
+	if &filetype is 'vim'
+		let g:ListForQuote    = ['$']	" char to include for quotes
+		let g:ListForBracket  = ['$']	" char to include for brackets
+	endif
 endfun
 au BufRead,GuiEnter * call DecisionFT()
 " Or you can manually modify the character to include when manipulating specific filetype language one by one.
@@ -42,7 +46,6 @@ let g:ListBraTotal = [g:ListCur,g:ListBra,g:ListSha,g:ListRec]
 let g:ListDuo = ['"','"']
 let g:ListSma = ["'","'"]
 
-let g:closingList = ["'",'"',")","]",">","}","$",'\',':']
 
 fun DeleteInQuoteOnce(avoid)
 	let avoid      = a:avoid
