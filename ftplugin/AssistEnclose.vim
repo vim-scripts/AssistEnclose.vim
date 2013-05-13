@@ -16,7 +16,7 @@ fun DecisionFT()
 		let g:ListForSnippets = [] 	" char to include for snippets
 	endif
 endfun
-au BufRead,WinEnter * call DecisionFT()
+au BufRead,GuiEnter * call DecisionFT()
 " Or you can manually modify the character to include when manipulating specific filetype language one by one.
 " like following
 " if &ft == 'python'
@@ -42,7 +42,7 @@ let g:ListBraTotal = [g:ListCur,g:ListBra,g:ListSha,g:ListRec]
 let g:ListDuo = ['"','"']
 let g:ListSma = ["'","'"]
 
-let g:closingList = ["'",'"',")","]",">","}","$",'\']
+let g:closingList = ["'",'"',")","]",">","}","$",'\',':']
 
 fun DeleteInQuoteOnce(avoid)
 	let avoid      = a:avoid
@@ -303,7 +303,7 @@ fun WordsBracket(arg) range
 endf
 
 fun WordsEncapsN(encapsList,includeMap)
-	call WorkAroundAutoClose('open')
+	call Workaroundautoclose('open')
 	let pos          = getpos('.')
 	let left_encaps  = a:encapsList[1]
 	let right_encaps = a:encapsList[0]
@@ -324,20 +324,21 @@ fun WordsEncapsN(encapsList,includeMap)
 	exe "normal a" . right_encaps
 
 	call setpos('.',pos)
-	call WorkAroundAutoClose('close')
+	call Workaroundautoclose('close')
+	" redraw!
 endf
 
-fun! CoreExample()
-	nmap x <Plug>ToggleAutoCloseMappings
+fun CoreExample()
+	nmap x <Plug>ToggleautocloseMappings
 	normal x
 	exe 'nunmap x'
 endf
 
 let g:switched = 0
-fun! WorkAroundAutoClose(arg)
+fun Workaroundautoclose(arg)
 	let status = a:arg
 	if exists('g:autoclose_loaded')
-		if g:autoclose_on && status == 'open'
+		if g:autoclose_on && status == 'open' 
 			call CoreExample()
 			let g:switched = !g:switched
 		elseif g:switched && status == 'close'
@@ -349,7 +350,7 @@ endf
 
 fun WordsEncapsV(encapslist,includeMap,mode) range
 
-	call WorkAroundAutoClose('open')
+	call Workaroundautoclose('open')
 
 	let left_encaps  = a:encapslist[1]
 	let right_encaps = a:encapslist[0]
@@ -408,7 +409,8 @@ fun WordsEncapsV(encapslist,includeMap,mode) range
 		exe "normal a" . right_encaps
 		call cursor(line("'<"),col("'<"))
 	endif
-	call WorkAroundAutoClose('close')
+	call Workaroundautoclose('close')
+	" redraw!
 endf
 
 
@@ -454,7 +456,7 @@ fun SearchNextSpotSmall(sp,a1,a2,a3)
 endf
 
 fun WordsEmphasizeV(arg)
-	call WorkAroundAutoClose('open')
+	call Workaroundautoclose('open')
 	let option = a:arg
 
 	call cursor(line("'>"),col("'>"))
@@ -502,11 +504,11 @@ fun WordsEmphasizeV(arg)
 	elseif after == 2
 		normal f{;l
 	endif
-	call WorkAroundAutoClose('close')
+	call Workaroundautoclose('close')
 endf
 fun WordsEmphasize(arg) range
 	let pos = getpos('.')
-	call WorkAroundAutoClose('open')
+	call Workaroundautoclose('open')
 	let option = a:arg
 
 	if getline('.')[col('.')] != ' '
@@ -559,11 +561,11 @@ fun WordsEmphasize(arg) range
 	elseif after == 2
 		normal f{;l
 	endif
-	call WorkAroundAutoClose('close')
+	call Workaroundautoclose('close')
 endf
 
 fun WordsSnippetsV() range
-	call WorkAroundAutoClose('open')
+	call Workaroundautoclose('open')
 
 	call cursor(line("'>"),col("'>")-1)
 	normal e
@@ -578,10 +580,10 @@ fun WordsSnippetsV() range
 	normal i${1:
 	normal h
 	" call cursor(line("'<"),col("'<"))
-	call WorkAroundAutoClose('close')
+	call Workaroundautoclose('close')
 endf
 fun WordsSnippets()
-	call WorkAroundAutoClose('open')
+	call Workaroundautoclose('open')
 	let pos = getpos('.')
 	normal e
 	call SearchNextSpot(g:ListForSnippets)
@@ -592,29 +594,8 @@ fun WordsSnippets()
 	call SearchBackSpot(g:ListForSnippets)
 	normal i${1:
 	normal h
-	call WorkAroundAutoClose('close')
+	call Workaroundautoclose('close')
 endf
-
-fun EasyThrough()
-	let closing = getline('.')[col('.')-1]
-	let through = 0
-	for avoid in g:closingList
-		if closing == avoid
-			let through += 1
-			return "\<Right>"
-		endif
-	endfor   
-	if pumvisible()
-		return "\<Insert>\<Insert>"
-		" return "\<Enter>"
-	else
-		if through
-			return "\<Insert>\<Insert>"
-		else
-			return "\<Esc>"
-		endif
-	endif
-endfun
 " 
 " 0. "blow out all contents"
 let avoidList = ["'",'"']
@@ -624,14 +605,15 @@ nmap <silent><A-[><A-]> :call DeleteInBraOnce(g:ListBraTotal)<CR>i
 " 1. "Make encaps."
 nmap <silent><A-)><A-(> :call WordsEncapsN(g:ListBra,g:ListForBracket)<CR>
 nmap <silent><A->><A-<> :call WordsEncapsN(g:ListSha,g:ListForBracket)<CR>
-nmap <silent><A-]><A-[> :call WordsEncapsN(g:ListRec,g:ListForBracket)<CR>
+" nmap <silent><A-]><A-[> :call WordsEncapsN(g:ListRec,g:ListForBracket)<CR>
 nmap <silent><A-}><A-{> :call WordsEncapsN(g:ListCur,g:ListForBracket)<CR>
-nmap <silent><A-'><A-;> :call WordsEncapsN(g:ListSma,g:ListForQuote)<CR>
+nmap <A-'><A-;> :call WordsEncapsN(g:ListSma,g:ListForQuote)<CR>
+" nmap <silent><A-'><A-;> :call WordsEncapsN(g:ListSma,g:ListForQuote)<CR>
 nmap <silent><A-"><A-:> :call WordsEncapsN(g:ListDuo,g:ListForQuote)<CR>
 
 vmap <silent><A-)><A-(> :call WordsEncapsV(g:ListBra,g:ListForBracket,'onepair')<CR>
 vmap <silent><A->><A-<> :call WordsEncapsV(g:ListSha,g:ListForBracket,'onepair')<CR>
-vmap <silent><A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'onepair')<CR>
+" vmap <silent><A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'onepair')<CR>
 vmap <silent><A-}><A-{> :call WordsEncapsV(g:ListCur,g:ListForBracket,'onepair')<CR>
 vmap <silent><A-'><A-;> :call WordsEncapsV(g:ListSma,g:ListForQuote,'onepair')<CR>
 vmap <silent><A-"><A-:> :call WordsEncapsV(g:ListDuo,g:ListForQuote,'onepair')<CR>
@@ -673,28 +655,41 @@ vmap <silent><A-]><A-]> :call EraseEncaps(g:ListRec,'visual')<CR>
 vmap <silent><A-"><A-"> :call EraseEncaps(g:ListDuo,'visual')<CR>
 vmap <silent><A-'><A-'> :call EraseEncaps(g:ListSma,'visual')<CR>
 
+
+fun DoubleFunctions()
+	nmap <silent><A-]><A-[> :call WordsEncapsN(g:ListRec,g:ListForBracket)<CR>
+	vmap <silent><A-]><A-[> :call WordsEncapsV(g:ListRec,g:ListForBracket,'onepair')<CR>
+endfun
+
 fun SetForSnippets()
 	vmap <silent><A-]><A-[> :call WordsSnippetsV()<CR>
 	nmap <silent><A-]><A-[> :call WordsSnippets()<CR>
 endf
 fun SetForHTML()
 	nmap <silent><A-]><A-[>	 :call WordsEmphasize(0)<CR>
+	vmap <silent><A-]><A-[>	 :call WordsEmphasizeV($buf.count)<CR>
 	nmap <silent>1<A-]><A-[> :call WordsEmphasize(1)<CR>
 	nmap <silent>2<A-]><A-[> :call WordsEmphasize(2)<CR>
 	nmap <silent>3<A-]><A-[> :call WordsEmphasize(3)<CR>
 	nmap <silent>4<A-]><A-[> :call WordsEmphasize(4)<CR>
 	nmap <silent>5<A-]><A-[> :call WordsEmphasize(5)<CR>
-	vmap <silent><A-]><A-[>	 :call WordsEmphasizeV($buf.count)<CR>
 	" vmap <A-]><A-[> :call WordsEmphasizeV()<CR>
 	" nmap <A-]><A-[> :call WordsEmphasize()<CR>
 endf
 
-au BufNewFile,BufRead,Bufenter,BufReadPost *.html,*.tex call SetForHTML()
-au BufNewFile,BufRead,Bufenter,BufReadPost *.snippets call SetForSnippets()
-
-inoremap <expr> j pumvisible() ? "\<C-N>" : "j"
-inoremap <expr> k pumvisible() ? "\<C-P>" : "k"
-inoremap <silent><C-j> <C-R>=EasyThrough()<CR>
+fun CheckFiletype()
+	if &ft == 'html' || &ft == 'tex'
+		call SetForHTML()
+	elseif &ft == 'snippets'
+		call SetForSnippets()
+	else
+		call DoubleFunctions()
+	endif
+endfun
+au BufEnter * call CheckFiletype()
+" au BufEnter * call CheckFiletype()
+" au filetype html,tex call SetForHTML()
+" au filetype snippets call SetForSnippets()
 
 "Drop in your .vim/plugin or vimfiles/plugin
 "Feel free changing to your favorite key mapping.
